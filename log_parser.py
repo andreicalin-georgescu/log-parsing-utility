@@ -18,15 +18,17 @@ The report will contain:
 The warnings and errors will also be accompanied by the job information for troubleshooting
 purposes.
 """
-
+import os
 import csv
 from datetime import datetime, timedelta
+from arg_parser import get_args
 
-LOG_FILE = "logs.log"
-TIME_FORMAT = "%H:%M:%S"
-WARNING_THRESHOLD = timedelta(minutes=5)
-ERROR_THRESHOLD = timedelta(minutes=10)
+args = get_args()
 
+LOG_FILE = args.file
+TIME_FORMAT = args.time_format
+WARNING_THRESHOLD = timedelta(minutes=args.warning_threshold)
+ERROR_THRESHOLD = timedelta(minutes=args.error_threshold)
 
 def parse_log_file(filename):
     jobs = {}
