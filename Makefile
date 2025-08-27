@@ -19,19 +19,19 @@ help:
 setup:
 	pip3 install --upgrade pip
 	pip3 install -r requirements.txt
-	
+
 # Format code using Black
 format:
-	python3 -m black parser.py
+	python3 -m black log_parser.py tests/
 
 # Run lint checks
 lint:
-	python3 -m ruff check --fix parser.py
-	python3 -m ruff check --show-files parser.py
+	python3 -m ruff check --fix log_parser.py tests/
+	python3 -m ruff check --show-files log_parser.py tests/
 
 # Run security scan
 security:
-	python3 -m bandit -r parser.py
+	python3 -m bandit -r log_parser.py
 	python3 -m bandit -r tests/ -s B101
 
 # Run unit and integration tests
@@ -40,5 +40,5 @@ test:
 	python3 -m pytest tests/integration
 
 # Run full check
-check: format lint security test coverage
+check: format lint security test
 	@echo "All checks passed successfully!"

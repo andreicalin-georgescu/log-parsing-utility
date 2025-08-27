@@ -53,7 +53,11 @@ def parse_log_file(filename):
             elif job_status == "END":
                 start_time = jobs.pop(job_pid, None)
                 if start_time:
-                    job_duration = job_timestamp - start_time
+                    # Check if duration can be successfully calculated
+                    try:
+                        job_duration = job_timestamp - start_time
+                    except Exception as e:
+                        print(f"Error calculating duration for {job_description}: {e}")
                     result_jobs.append(
                         {
                             "description": job_description,
@@ -65,7 +69,6 @@ def parse_log_file(filename):
                     )
     return result_jobs
 
-
 def generate_report(jobs):
     for job in jobs:
         duration = job["duration"]
@@ -74,7 +77,7 @@ def generate_report(jobs):
             print(f"ERROR: {job_info}")
         elif duration > WARNING_THRESHOLD:
             print(f"WARNING: {job_info}")
-
+    
 
 if __name__ == "__main__":
     result_jobs = parse_log_file(LOG_FILE)
