@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   python-validation:
+    if: contains(github.event.pull_request.changed_files, '*.py')
     name: 🧪 Python Linting & Security
     runs-on: ubuntu-latest
 
