@@ -23,14 +23,7 @@ import csv
 from datetime import datetime, timedelta
 from arg_parser import get_args
 
-args = get_args()
-
-LOG_FILE = args.file
-TIME_FORMAT = args.time_format
-WARNING_THRESHOLD = timedelta(minutes=args.warning_threshold)
-ERROR_THRESHOLD = timedelta(minutes=args.error_threshold)
-
-def parse_log_file(filename):
+def parse_log_file(filename, time_format ="%H:%M:%S"):
     jobs = {}
     result_jobs = []
 
@@ -45,7 +38,7 @@ def parse_log_file(filename):
             job_timestamp_string, job_description, job_status, job_pid = [
                 item.strip() for item in row
             ]
-            job_timestamp = datetime.strptime(job_timestamp_string, TIME_FORMAT)
+            job_timestamp = datetime.strptime(job_timestamp_string, time_format)
 
             # add dictionary entry on START log lines with the timestamp value
             if job_status == "START":
@@ -71,16 +64,49 @@ def parse_log_file(filename):
                     )
     return result_jobs
 
-def generate_report(jobs):
+def generate_report(
+        jobs,
+        warning_threshold=timedelta(minutes=5),
+        error_threshold=timedelta(minutes=10)
+):
     for job in jobs:
         duration = job["duration"]
+        # Check if duration is timedelta
+        if not isinstance(duration, timedelta):
+            print(f"Invalid duration for job {job['description']}: {duration}")
+            continue
+        
         job_info = f"{job['description']} (PID {job['pid']}) from {job['start_time']} to {job['end_time']} - Duration: {duration}"
-        if duration > ERROR_THRESHOLD:
+        if duration > error_threshold:
             print(f"ERROR: {job_info}")
-        elif duration > WARNING_THRESHOLD:
+        elif duration > warning_threshold:
             print(f"WARNING: {job_info}")
     
 
 if __name__ == "__main__":
-    result_jobs = parse_log_file(LOG_FILE)
-    generate_report(result_jobs)
+    args = get_args()
+    LOG_FILE = args.file
+    TIME_FORMAT = args.time_format
+    WARNING_THRESHOLD = timedelta(minutes=args.warning_threshold)
+    ERROR_THRESHOLD = timedelta(minutes=args.error_threshold)
+
+    if args.recursive:
+        for filename in os.listdir(args.recursive):
+            if filename.endswith(".log"):
+                print(f"Parsing log file: {filename}")
+                result_jobs = parse_log_file(
+                    os.path.join(args.recursive, filename),
+                    time_format=TIME_FORMAT
+                )
+                generate_report(
+                    result_jobs,
+                    warning_threshold=WARNING_THRESHOLD,
+                    error_threshold=ERROR_THRESHOLD
+                )
+    else:
+        result_jobs = parse_log_file(LOG_FILE, time_format=TIME_FORMAT)
+        generate_report(
+            result_jobs,
+            warning_threshold=WARNING_THRESHOLD,
+            error_threshold=ERROR_THRESHOLD
+        )
