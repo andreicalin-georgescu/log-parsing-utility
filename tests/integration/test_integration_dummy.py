@@ -1,5 +1,6 @@
 import pytest
 
+
 def test_integration_dummy_placeholder():
     """
     Placeholder test for integration_dummy.py.

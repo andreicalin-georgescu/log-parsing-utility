@@ -27,17 +27,16 @@ def simple_log():
     ]
     return make_log_content(rows)
 
+
 # Patch sys.argv before importing log_parser to control arg_parser.get_args()
 @pytest.fixture(autouse=True)
 def patch_sys_argv(monkeypatch):
     # Set default arguments for arg_parser
-    monkeypatch.setattr(sys, "argv", [
-        "prog",
-        "-f", "dummy.csv",
-        "-t", "%H:%M:%S",
-        "-w", "5",
-        "-e", "10"
-    ])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["prog", "-f", "dummy.csv", "-t", "%H:%M:%S", "-w", "5", "-e", "10"],
+    )
     yield
 
 
@@ -50,6 +49,7 @@ def make_log_content(rows):
     output.seek(0)
     return output
 
+
 @pytest.fixture
 def simple_log():
     # 2 jobs, one normal, one long
@@ -61,6 +61,7 @@ def simple_log():
     ]
     return make_log_content(rows)
 
+
 def test_parse_log_file_basic(monkeypatch, simple_log):
     monkeypatch.setattr("builtins.open", lambda *a, **k: simple_log)
     jobs = log_parser.parse_log_file("dummy.csv")
@@ -70,6 +71,7 @@ def test_parse_log_file_basic(monkeypatch, simple_log):
     assert jobs[0]["duration"] == timedelta(minutes=3)
     assert jobs[1]["description"] == "Job B"
     assert jobs[1]["duration"] == timedelta(minutes=11)
+
 
 def test_parse_log_file_skips_malformed(monkeypatch):
     rows = [
@@ -86,6 +88,7 @@ def test_parse_log_file_skips_malformed(monkeypatch):
     assert len(jobs) == 2
     assert all(j["description"] in ("Job A", "Job B") for j in jobs)
 
+
 def test_parse_log_file_handles_multiple_starts(monkeypatch):
     rows = [
         ["10:00:00", "Job X", "START", "999"],
@@ -99,11 +102,13 @@ def test_parse_log_file_handles_multiple_starts(monkeypatch):
     # Duration should be 5 minutes (from second START)
     assert jobs[0]["duration"] == timedelta(minutes=5)
 
+
 def test_parse_log_file_empty(monkeypatch):
     log = make_log_content([])
     monkeypatch.setattr("builtins.open", lambda *a, **k: log)
     jobs = log_parser.parse_log_file("dummy.csv")
     assert jobs == []
+
 
 def test_parse_log_file_invalid_time(monkeypatch):
     rows = [
@@ -114,6 +119,7 @@ def test_parse_log_file_invalid_time(monkeypatch):
     monkeypatch.setattr("builtins.open", lambda *a, **k: log)
     with pytest.raises(ValueError):
         log_parser.parse_log_file("dummy.csv")
+
 
 def test_parse_log_file_duplicate_end(monkeypatch):
     rows = [
@@ -127,6 +133,7 @@ def test_parse_log_file_duplicate_end(monkeypatch):
     assert len(jobs) == 1
     assert jobs[0]["description"] == "Job Z"
     assert jobs[0]["duration"] == timedelta(minutes=5)
+
 
 def test_parse_log_file_start_without_end(monkeypatch):
     rows = [
@@ -142,6 +149,7 @@ def test_parse_log_file_start_without_end(monkeypatch):
     assert jobs[0]["description"] == "Job X"
     assert jobs[0]["duration"] == timedelta(minutes=5)
 
+
 def test_parse_log_file_handles_whitespace(monkeypatch):
     rows = [
         [" 15:00:00 ", " Job D ", " START ", " 888 "],
@@ -154,6 +162,7 @@ def test_parse_log_file_handles_whitespace(monkeypatch):
     assert jobs[0]["description"] == "Job D"
     assert jobs[0]["pid"] == "888"
     assert jobs[0]["duration"] == timedelta(minutes=7)
+
 
 def test_generate_report_prints_warning_and_error(capsys):
     jobs = [
@@ -187,10 +196,12 @@ def test_generate_report_prints_warning_and_error(capsys):
     assert "Error Job" in out
     assert "Short Job" not in out
 
+
 def test_generate_report_empty(capsys):
     log_parser.generate_report([])
     out = capsys.readouterr().out
     assert out == ""
+
 
 def test_generate_report_exact_thresholds_and_warning(capsys):
     jobs = [
@@ -216,6 +227,7 @@ def test_generate_report_exact_thresholds_and_warning(capsys):
     assert "Exactly 10min" in out
     assert "Exactly 5min" not in out
     assert "ERROR" not in out
+
 
 def test_generate_report_warning_and_error_only_for_thresholds(capsys):
     jobs = [
@@ -248,6 +260,7 @@ def test_generate_report_warning_and_error_only_for_thresholds(capsys):
     assert "Just above warning" in out
     assert "ERROR" in out
     assert "Just above error" in out
+
 
 def test_generate_report_multiple_errors_and_warnings(capsys):
     jobs = [
@@ -288,6 +301,7 @@ def test_generate_report_multiple_errors_and_warnings(capsys):
     # Negative duration should not trigger warning/error
     assert "Warn2" not in out
 
+
 def test_generate_report_handles_missing_duration():
     jobs = [
         {
@@ -300,6 +314,7 @@ def test_generate_report_handles_missing_duration():
     ]
     with pytest.raises(KeyError):
         log_parser.generate_report(jobs)
+
 
 def test_generate_report_handles_non_timedelta_duration(capsys):
     jobs = [
@@ -319,7 +334,8 @@ def test_generate_report_handles_non_timedelta_duration(capsys):
     out = capsys.readouterr().out
     assert "WARNING" not in out
     assert "ERROR" not in out
-    
+
+
 def test_parse_log_file_skips_malformed(monkeypatch):
     rows = [
         ["13:00:00", "Job B", "START", "222"],
@@ -518,6 +534,7 @@ def test_generate_report_handles_missing_duration(monkeypatch, capsys):
     # Should raise KeyError
     with pytest.raises(KeyError):
         log_parser.generate_report(jobs)
+
 
 def test_parse_log_file_handles_whitespace(monkeypatch):
     rows = [

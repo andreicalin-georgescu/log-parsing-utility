@@ -18,12 +18,14 @@ The report will contain:
 The warnings and errors will also be accompanied by the job information for troubleshooting
 purposes.
 """
+
 import os
 import csv
 from datetime import datetime, timedelta
 from arg_parser import get_args
 
-def parse_log_file(filename, time_format ="%H:%M:%S"):
+
+def parse_log_file(filename, time_format="%H:%M:%S"):
     jobs = {}
     result_jobs = []
 
@@ -64,10 +66,9 @@ def parse_log_file(filename, time_format ="%H:%M:%S"):
                     )
     return result_jobs
 
+
 def generate_report(
-        jobs,
-        warning_threshold=timedelta(minutes=5),
-        error_threshold=timedelta(minutes=10)
+    jobs, warning_threshold=timedelta(minutes=5), error_threshold=timedelta(minutes=10)
 ):
     for job in jobs:
         duration = job["duration"]
@@ -75,13 +76,13 @@ def generate_report(
         if not isinstance(duration, timedelta):
             print(f"Invalid duration for job {job['description']}: {duration}")
             continue
-        
+
         job_info = f"{job['description']} (PID {job['pid']}) from {job['start_time']} to {job['end_time']} - Duration: {duration}"
         if duration > error_threshold:
             print(f"ERROR: {job_info}")
         elif duration > warning_threshold:
             print(f"WARNING: {job_info}")
-    
+
 
 if __name__ == "__main__":
     args = get_args()
@@ -95,18 +96,17 @@ if __name__ == "__main__":
             if filename.endswith(".log"):
                 print(f"Parsing log file: {filename}")
                 result_jobs = parse_log_file(
-                    os.path.join(args.recursive, filename),
-                    time_format=TIME_FORMAT
+                    os.path.join(args.recursive, filename), time_format=TIME_FORMAT
                 )
                 generate_report(
                     result_jobs,
                     warning_threshold=WARNING_THRESHOLD,
-                    error_threshold=ERROR_THRESHOLD
+                    error_threshold=ERROR_THRESHOLD,
                 )
     else:
         result_jobs = parse_log_file(LOG_FILE, time_format=TIME_FORMAT)
         generate_report(
             result_jobs,
             warning_threshold=WARNING_THRESHOLD,
-            error_threshold=ERROR_THRESHOLD
+            error_threshold=ERROR_THRESHOLD,
         )
