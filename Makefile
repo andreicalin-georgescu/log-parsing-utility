@@ -1,6 +1,6 @@
 # Makefile
 
-.PHONY: help setup format lint security pre-commit-all
+.PHONY: help setup format lint security
 
 # Show help for each target
 help:
