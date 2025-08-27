@@ -62,6 +62,7 @@ check	Run all checks (format, lint, security, test)
 make setup && make check
 ```
 
-## Important mentions:
+## Important mentions and additional improvements:
 1. For the purpose of this exercise, AI-assisted development has been used when generating the unit tests, since they border on the scope of the utility tool.
-2. As additional workflow enhancements I will look into *integrating GitHub Copilot in order to dynamically generate sample log files* of the same structure, thus adding variety to the automated testing of the utility tool.
+2. As an additional workflow enhancement, next step is to also *integrate GitHub Copilot action in order to dynamically generate sample log files* of the same structure, thus adding variety to the automated testing of the utility tool.
+3. In order to save on GitHub Actions runtime, conditionals can be set for the python-validation job in order to run only when *.py files are changed.
