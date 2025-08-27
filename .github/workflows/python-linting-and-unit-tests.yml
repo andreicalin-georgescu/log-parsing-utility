@@ -30,13 +30,13 @@ jobs:
           pip install -r requirements.txt
 
       - name: 🎨 Code formatting check (black)
-        run: black --check --diff parser.py
+        run: black --check --diff *.py
 
       - name: 🧼 Linting (ruff)
-        run: ruff check parser.py
+        run: ruff check *.py
 
       - name: 🛡️ Security scan (bandit)
-        run: bandit -r parser.py
+        run: bandit -r *.py
 
   cli-smoke-tests:
     name: 🧪 CLI Smoke Tests
