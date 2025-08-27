@@ -1,5 +1,5 @@
 import argparse
-# test change for Python workflow conditional trigger
+
 
 def get_args():
     parser = argparse.ArgumentParser(description="Log Parsing Utility")
