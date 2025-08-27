@@ -19,8 +19,7 @@ help:
 setup:
 	pip3 install --upgrade pip
 	pip3 install -r requirements.txt
-	python3 -m pre_commit install
-
+	
 # Format code using Black
 format:
 	python3 -m black parser.py
