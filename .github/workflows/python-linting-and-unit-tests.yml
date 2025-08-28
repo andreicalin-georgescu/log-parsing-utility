@@ -110,8 +110,9 @@ jobs:
         run: |
           mkdir -p input_logs
           printf "%s" "${{ steps.generate_log_contents.outputs.response }}" > logs_raw.txt
-          sed '/^```/d' logs_raw.txt \
-            | awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}'
+          sed '/^```/d' logs_raw.txt
+          cat logs_raw.txt
+          awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}' logs_raw.txt
 
       - name: 🏃 Run against sample generated input
         run: |
