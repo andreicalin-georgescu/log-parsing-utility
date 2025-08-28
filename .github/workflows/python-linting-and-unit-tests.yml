@@ -106,6 +106,7 @@ jobs:
             - Job descriptions should be varied.
             - Each job should have a START and END with matching pid.
             - Alternate the entries so that two or more jobs can start before the first one ends.
+            - Make sure to include jobs with varying durations, some exceeding 5 minutes and others exceeding 10 minutes.
             - Logs should be named log1.log, log2.log etc.
             - Output only the raw file contents, separated by a line with: ===logX.log=== where X is the current log number.
         continue-on-error: false
@@ -117,6 +118,5 @@ jobs:
 
       - name: 🏃 Run against sample generated input
         run: |
-          ls -l input_logs
-          cat input_logs/*
-          python -u log_parser.py --recursive input_logs
+          python log_parser.py --recursive input_logs > output_report.log
+          cat output_report.log
