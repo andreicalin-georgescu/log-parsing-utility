@@ -95,7 +95,7 @@ jobs:
         uses: actions/ai-inference@v1
         with:
           model: openai/gpt-4o
-          system-prompt: |
+          prompt: |
             Generate contents for five random log files, each with 50-100 lines, following this CSV format:
             <timestamp>,<job description>,<START|END>,<pid>
             Example line: 11:35:23,scheduled task 032, START,37980
