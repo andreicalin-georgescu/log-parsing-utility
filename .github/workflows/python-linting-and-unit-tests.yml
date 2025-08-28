@@ -95,13 +95,17 @@ jobs:
         uses: actions/ai-inference@v1
         with:
           model: openai/gpt-4o
+          max-tokens: 2500
+          system-prompt: |
+            You are a sample log output generator. Follow the requirements given and generate output in the exact format specified.
           prompt: |
-            Generate contents for two random log files, each with 30-40 lines, following this CSV format:
+            Generate contents for five random log files, each with 30-40 lines, following this CSV format:
             <timestamp>,<job description>,<START|END>,<pid>
             Example line: 11:35:23,scheduled task 032, START,37980
             - Timestamps should be realistic and incrementing within a day (HH:MM:SS).
             - Job descriptions should be varied.
             - Each job should have a START and END with matching pid.
+            - Alternate the entries so that two or more jobs can start before the first one ends.
             - Logs should be named log1.log, log2.log etc.
             - Output only the raw file contents, separated by a line with: ===logX.log=== where X is the current log number.
         continue-on-error: false
@@ -110,9 +114,8 @@ jobs:
         run: |
           mkdir -p input_logs
           printf "%s" "${{ steps.generate_log_contents.outputs.response }}" > logs_raw.txt
-          sed '/^```/d' logs_raw.txt
-          cat logs_raw.txt
-          awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}' logs_raw.txt
+          sed '/^```/d' logs_raw.txt > logs_cleaned.txt
+          awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}' logs_cleaned.txt
 
       - name: 🏃 Run against sample generated input
         run: |
