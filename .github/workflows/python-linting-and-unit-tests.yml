@@ -68,6 +68,7 @@ jobs:
         run: PYTHONPATH=. pytest tests/integration
 
   generate-and-run-logs:
+    name: 🧪 Generate Sample Logs and Run
     runs-on: ubuntu-latest
     needs: cli-smoke-tests
     permissions:
@@ -90,25 +91,25 @@ jobs:
           pip install -r requirements.txt
 
       - name: 🧠 Generate 5 random logs with ai-inference
-        id: generate_logs
+        id: generate_log_contents
         uses: actions/ai-inference@v1
         with:
           model: openai/gpt-4o
-          prompt: |
-            Generate 5 random log files, each with 50-100 lines, following this CSV format:
+          system-prompt: |
+            Generate contents for five random log files, each with 50-100 lines, following this CSV format:
             <timestamp>,<job description>,<START|END>,<pid>
             Example line: 11:35:23,scheduled task 032, START,37980
             - Timestamps should be realistic and incrementing within a day (HH:MM:SS).
             - Job descriptions should be varied.
             - Each job should have a START and END with matching pid.
             - Output each log as a separate file, named log1.log, log2.log, etc.
-            - Output only the raw file contents, separated by a line with: ===logX.log===
+            - Output only the raw file contents, separated by a line with: ===logX.log=== where X is the current log number.
         continue-on-error: false
 
       - name: 📝 Write generated logs to input_logs/
         run: |
           mkdir -p input_logs
-          awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}' <<< "${{ steps.generate_logs.outputs.result }}"
+          awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}' <<< "${{ steps.generate_log_contents.outputs.response }}"
 
       - name: 🏃 Run against sample generated input
         run: |
