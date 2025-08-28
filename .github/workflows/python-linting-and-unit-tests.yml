@@ -93,7 +93,7 @@ jobs:
         id: generate_logs
         uses: actions/ai-inference@v1
         with:
-          model: github-llama-3-70b-instruct
+          model: openai/gpt-4o
           prompt: |
             Generate 5 random log files, each with 50-100 lines, following this CSV format:
             <timestamp>,<job description>,<START|END>,<pid>
