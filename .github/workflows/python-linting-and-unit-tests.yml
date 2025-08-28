@@ -3,10 +3,12 @@ name: 🐍 Python Lint, Security and Testing
 on:
   pull_request:
     branches: [main]
+    paths:
+      - '**.py'
+      - '.github/workflows/python-linting-and-unit-tests.yml'
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   python-validation:
@@ -64,3 +66,63 @@ jobs:
 
       - name: 🧪 Run integration tests
         run: PYTHONPATH=. pytest tests/integration
+
+  generate-and-run-logs:
+    name: 🧪 Generate Sample Logs and Run
+    runs-on: ubuntu-latest
+    needs: cli-smoke-tests
+    permissions:
+      contents: read
+      models: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🧠 Generate random logs with ai-inference
+        id: generate_log_contents
+        uses: actions/ai-inference@v1
+        with:
+          model: openai/gpt-4o
+          max-tokens: 1500
+          system-prompt: |
+            You are a sample log output generator. Follow the requirements given and generate output in the exact format specified.
+          prompt: |
+            Generate contents for three random log files, each with 30-40 lines, following this CSV format:
+            <timestamp>,<job description>,<START|END>,<pid>
+            Example line: 11:35:23,scheduled task 032, START,37980
+            - Timestamps should be realistic and incrementing within a day (HH:MM:SS).
+            - Job descriptions should be varied.
+            - Each job should have a START and END with matching pid.
+            - Alternate the entries so that two or more jobs can start before the first one ends.
+            - Make sure to include jobs with varying durations, some exceeding 5 minutes and others exceeding 10 minutes.
+            - Logs should be named log1.log, log2.log etc.
+            - Output only the raw file contents, separated by a line with: ===logX.log=== where X is the current log number.
+        continue-on-error: false
+
+      - name: 📝 Write generated logs to input_logs
+        run: |
+          mkdir -p input_logs
+          sed '/^```/d' ${{ steps.generate_log_contents.outputs.response-file }} | \
+          awk '/^===log[0-9]+\.log===$/{
+              match($0, /^===log[0-9]+\.log===/);
+              x = "input_logs/" substr($0, 4, RLENGTH-6);
+              next
+          }
+          {print > x}'
+
+      - name: 📋 Run against sample generated input
+        run: |
+          python log_parser.py --recursive input_logs > output_report.txt
+          cat output_report.txt
