@@ -106,10 +106,10 @@ jobs:
             - Output only the raw file contents, separated by a line with: ===logX.log=== where X is the current log number.
         continue-on-error: false
 
-      - name: 📝 Write generated logs to input_logs/
+      - name: 📝 Write generated logs to input_logs
         run: |
           mkdir -p input_logs
-          awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}' <<< "${{ steps.generate_log_contents.outputs.response }}"
+          echo "${{ steps.generate_log_contents.outputs.response }}" | awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}'
 
       - name: 🏃 Run against sample generated input
         run: |
