@@ -96,13 +96,13 @@ jobs:
         with:
           model: openai/gpt-4o
           prompt: |
-            Generate contents for five random log files, each with 50-100 lines, following this CSV format:
+            Generate contents for two random log files, each with 30-40 lines, following this CSV format:
             <timestamp>,<job description>,<START|END>,<pid>
             Example line: 11:35:23,scheduled task 032, START,37980
             - Timestamps should be realistic and incrementing within a day (HH:MM:SS).
             - Job descriptions should be varied.
             - Each job should have a START and END with matching pid.
-            - Output each log as a separate file, named log1.log, log2.log, etc.
+            - Output each log as a separate file, named log1.log, log2.log.
             - Output only the raw file contents, separated by a line with: ===logX.log=== where X is the current log number.
         continue-on-error: false
 
