@@ -3,6 +3,9 @@ name: 🐍 Python Lint, Security and Testing
 on:
   pull_request:
     branches: [main]
+    paths:
+      - '**.py'
+      - '.github/workflows/python-linting-and-unit-tests.yml'
 
 permissions:
   contents: read
