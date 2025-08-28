@@ -67,3 +67,28 @@ jobs:
 
       - name: 🧪 Run integration tests
         run: PYTHONPATH=. pytest tests/integration
+      
+      - name: 🧠 Generate 5 random logs with ai-inference
+        id: generate_logs
+        uses: github/ai-inference@v1
+        with:
+          model: github-llama-3-70b-instruct
+          prompt: |
+            Generate 5 random log files, each with 50-100 lines, following this CSV format:
+            <timestamp>,<job description>,<START|END>,<pid>
+            Example line: 11:35:23,scheduled task 032, START,37980
+            - Timestamps should be realistic and incrementing within a day (HH:MM:SS).
+            - Job descriptions should be varied.
+            - Each job should have a START and END with matching pid.
+            - Output each log as a separate file, named log1.log, log2.log, etc.
+            - Output only the raw file contents, separated by a line with: ===logX.log===
+        continue-on-error: false
+
+      - name: 📝 Write generated logs to input_logs/
+        run: |
+          mkdir -p input_logs
+          awk '/^===log[0-9]+\.log===$/{x="input_logs/"substr($0,4);next}{print > x}' <<< "${{ steps.generate_logs.outputs.result }}"
+
+      - name: 🏃 Run against sample generated input
+        run: |
+          python log_parser.py --recursive input_logs
