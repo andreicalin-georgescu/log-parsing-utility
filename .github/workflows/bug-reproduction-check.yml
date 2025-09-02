@@ -34,7 +34,7 @@ jobs:
         id: analyze_issue
         uses: actions/ai-inference@v1
         with:
-          model: mistralai/mistral-3b
+          model: mistral-ai/ministral-3b
           max-tokens: 1500
           system-prompt: |
             You are an expert bug triager. Your job is to determine if a GitHub issue contains enough information for a developer to reproduce a bug. 
