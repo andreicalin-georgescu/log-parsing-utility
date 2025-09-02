@@ -1,0 +1,65 @@
+name: 🐞 Bug Reproduction Info Check
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+  models: read
+
+jobs:
+  check-bug-reproducibility:
+    name: 🤖 Check Bug Reproducibility Info
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Fetch Issue Data
+        id: fetch_issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = context.issue.number;
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+            });
+            core.setOutput('title', issue.data.title);
+            core.setOutput('body', issue.data.body);
+
+      - name: 🧠 AI Reproducibility Check
+        if: contains(join(github.event.issue.labels.*.name, ','), 'bug')
+        id: analyze_issue
+        uses: actions/ai-inference@v1
+        with:
+          model: mistralai/mistral-3b
+          max-tokens: 1500
+          system-prompt: |
+            You are an expert bug triager. Your job is to determine if a GitHub issue contains enough information for a developer to reproduce a bug. 
+            Only respond with "pass" if ALL of the following are present:
+            - A clear title or summary of the problem
+            - Step-by-step instructions to reproduce the bug
+            - The actual outcome (what really happened)
+            - The expected outcome (what should have happened)
+            If any of these are missing or unclear, respond with a short, polite message asking the user to provide the missing details.
+          prompt: |
+            Title: ${{ steps.fetch_issue.outputs.result.title }}
+            Body: ${{ steps.fetch_issue.outputs.result.body }}
+
+      - name: 💬 Comment if Bug Info is Incomplete
+        if: contains(join(github.event.issue.labels.*.name, ','), 'bug') && steps.analyze_issue.outputs.response != 'pass'
+        uses: actions/github-script@v7
+        env: 
+            AI_RESPONSE: ${{ steps.analyze_issue.outputs.response }}
+        with:
+          script: |
+            console.log(process.env)
+            const issue_number = context.issue.number
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body: process.env.AI_RESPONSE
+            });
