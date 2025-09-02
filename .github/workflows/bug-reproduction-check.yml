@@ -26,8 +26,8 @@ jobs:
               repo: context.repo.repo,
               issue_number,
             });
-            core.setOutput('title', issue.data.title);
-            core.setOutput('body', issue.data.body);
+            core.setOutput('title', issue.title);
+            core.setOutput('body', issue.body);
 
       - name: 🧠 AI Reproducibility Check
         if: contains(join(github.event.issue.labels.*.name, ','), 'bug')
