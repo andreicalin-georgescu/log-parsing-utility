@@ -29,21 +29,17 @@ jobs:
             core.setOutput('title', issue.title);
             core.setOutput('body', issue.body);
 
-      - name: 🧠 AI Reproducibility Check
+      - name: Analyze Issue For Reproduction
         if: contains(join(github.event.issue.labels.*.name, ','), 'bug')
         id: analyze_issue
         uses: actions/ai-inference@v1
         with:
           model: mistral-ai/ministral-3b
-          max-tokens: 1500
           system-prompt: |
-            You are an expert bug triager. Your job is to determine if a GitHub issue contains enough information for a developer to reproduce a bug. 
-            Only respond with "pass" if ALL of the following are present:
-            - A clear title or summary of the problem
-            - Step-by-step instructions to reproduce the bug
-            - The actual outcome (what really happened)
-            - The expected outcome (what should have happened)
-            If any of these are missing or unclear, respond with a short, polite message asking the user to provide the missing details.
+            Given a bug report title and text for a web application, return 'pass' if there is enough information to reliably reproduce the issue,
+            meaning the report clearly describes the steps to reproduce the problem, specifies the expected and actual behavior, and includes environment
+            details such as browser and operating system; if any of these elements are missing or unclear, return a brief description of what is missing in a
+            friendly response to the author instead of 'pass'. Consider the following title and body:
           prompt: |
             Title: ${{ steps.fetch_issue.outputs.result.title }}
             Body: ${{ steps.fetch_issue.outputs.result.body }}
