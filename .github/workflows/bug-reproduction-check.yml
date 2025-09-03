@@ -37,9 +37,7 @@ jobs:
           model: mistral-ai/ministral-3b
           max-tokens: 1500
           system-prompt: |
-            Given a bug report title and text for a web application, return 'pass' if there is enough information to reliably reproduce the issue, meaning the report clearly states:
-            the steps to reproduce the problem, the expected and actual behavior, and includes environment details such as browser and operating system; if any of these elements are
-            missing or unclear, return a brief description directed at the author and bullet point list of what is missing in a friendly response instead of 'pass'. Consider the following title and body:
+            Given a bug report title and text for a web application, return 'pass' if there is enough information to reliably reproduce the issue, meaning the report clearly states: the steps to reproduce the problem, the expected and actual behavior, and includes environment details such as browser and operating system; if any of these elements are missing or unclear, return a brief description directed at the author and bullet point list of what is missing in a friendly response instead of 'pass'. Consider the following title and body:
           prompt: |
             Title: ${{ steps.fetch_issue.outputs.title }}
             Body: ${{ steps.fetch_issue.outputs.body }}
