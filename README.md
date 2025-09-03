@@ -34,6 +34,7 @@ python log_parser.py --recursive ./logs/
 ## Development & Tooling
 - Development time: ~90 minutes, including:
 - GitHub Actions workflows for linting, security scanning, formatting, and running unit/integration tests.
+- **🤖 Copilot Auto-PR Workflow**: Automatically creates draft PRs for issues with sufficient context ([docs](docs/copilot-workflow.md))
 - Makefile for fast local setup and common developer tasks.
 
 ## Makefile Commands
