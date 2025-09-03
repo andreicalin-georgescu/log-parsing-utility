@@ -1,0 +1,255 @@
+name: 🤖 Copilot Auto PR Creation
+
+on:
+  workflow_run:
+    workflows: ["🐞 Bug Reproduction Info Check"]
+    types:
+      - completed
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  check-and-create-pr:
+    name: 🚀 Check Context and Create Copilot PR
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'issues')
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Fetch Issue Data
+        id: fetch_issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let issue_number, issue_data;
+            
+            if (context.eventName === 'workflow_run') {
+              // Get issue number from workflow_run context
+              const workflowRun = context.payload.workflow_run;
+              const associatedPR = workflowRun.pull_requests[0];
+              
+              if (associatedPR) {
+                issue_number = associatedPR.number;
+              } else {
+                // Try to extract issue number from workflow run
+                const runData = await github.rest.actions.getWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: workflowRun.id
+                });
+                
+                // Look for issue reference in commit messages or branch names
+                const headBranch = runData.data.head_branch;
+                const issueMatch = headBranch.match(/issue-(\d+)/);
+                if (issueMatch) {
+                  issue_number = parseInt(issueMatch[1]);
+                } else {
+                  console.log('No associated issue found for workflow run');
+                  return;
+                }
+              }
+            } else {
+              issue_number = context.issue.number;
+            }
+            
+            if (!issue_number) {
+              console.log('No issue number found');
+              return;
+            }
+            
+            issue_data = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number
+            });
+            
+            core.setOutput('issue_number', issue_number);
+            core.setOutput('title', issue_data.data.title);
+            core.setOutput('body', issue_data.data.body || '');
+            core.setOutput('labels', JSON.stringify(issue_data.data.labels.map(l => l.name)));
+            core.setOutput('has_issue', 'true');
+
+      - name: 🤖 Analyze Issue Context for Copilot Readiness
+        if: steps.fetch_issue.outputs.has_issue == 'true'
+        id: analyze_context
+        uses: actions/ai-inference@v1
+        with:
+          model: openai/gpt-4o-mini
+          max-tokens: 500
+          system-prompt: |
+            You are analyzing GitHub issues to determine if they have sufficient context for an AI coding assistant to begin work. 
+            
+            Return 'READY' if the issue meets ALL these criteria:
+            1. Clear problem description or feature request
+            2. Sufficient technical details about the expected behavior
+            3. Context about the codebase or specific files/functions involved
+            4. For bugs: steps to reproduce, expected vs actual behavior
+            5. For features: clear specification of what should be implemented
+            
+            Return 'NOT_READY' with a brief reason if any criteria are missing.
+            
+            Consider that this is a Python log parsing utility with CLI functionality.
+          prompt: |
+            Issue Title: ${{ steps.fetch_issue.outputs.title }}
+            Issue Body: ${{ steps.fetch_issue.outputs.body }}
+            Labels: ${{ steps.fetch_issue.outputs.labels }}
+
+      - name: 🔍 Check for Existing PR
+        if: steps.analyze_context.outputs.response == 'READY'
+        id: check_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = ${{ steps.fetch_issue.outputs.issue_number }};
+            
+            // Check for existing PRs that reference this issue
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+            
+            const existingPR = prs.data.find(pr => 
+              pr.title.includes(`#${issue_number}`) || 
+              pr.body.includes(`#${issue_number}`) ||
+              pr.body.includes(`Fixes #${issue_number}`) ||
+              pr.body.includes(`Closes #${issue_number}`)
+            );
+            
+            if (existingPR) {
+              console.log(`Existing PR found: #${existingPR.number}`);
+              core.setOutput('has_existing_pr', 'true');
+              core.setOutput('pr_number', existingPR.number);
+            } else {
+              core.setOutput('has_existing_pr', 'false');
+            }
+
+      - name: 🌿 Create Feature Branch
+        if: steps.analyze_context.outputs.response == 'READY' && steps.check_pr.outputs.has_existing_pr == 'false'
+        id: create_branch
+        run: |
+          issue_number="${{ steps.fetch_issue.outputs.issue_number }}"
+          issue_title="${{ steps.fetch_issue.outputs.title }}"
+          
+          # Create a branch name from the issue
+          branch_name="copilot/issue-${issue_number}-$(echo "$issue_title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-50)"
+          
+          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
+          
+          # Create and push the branch
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch_name"
+          git push origin "$branch_name"
+
+      - name: 📝 Create Draft PR
+        if: steps.analyze_context.outputs.response == 'READY' && steps.check_pr.outputs.has_existing_pr == 'false'
+        id: create_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = ${{ steps.fetch_issue.outputs.issue_number }};
+            const branch_name = "${{ steps.create_branch.outputs.branch_name }}";
+            const issue_title = "${{ steps.fetch_issue.outputs.title }}";
+            
+            const pr_title = `🤖 Copilot: ${issue_title}`;
+            const pr_body = `## 🤖 Copilot Auto-Generated PR
+            
+            This PR was automatically created to address issue #${issue_number}.
+            
+            ### Issue Summary
+            ${issue_title}
+            
+            ### Next Steps
+            - [ ] Review the issue requirements
+            - [ ] Implement the necessary changes
+            - [ ] Add/update tests as needed
+            - [ ] Update documentation if required
+            - [ ] Request review when ready
+            
+            **Original Issue:** #${issue_number}
+            
+            ---
+            *This PR was created automatically by GitHub Copilot workflow. Please review the changes carefully.*`;
+            
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: pr_title,
+              head: branch_name,
+              base: 'main',
+              body: pr_body,
+              draft: true
+            });
+            
+            console.log(`Created draft PR #${pr.data.number}`);
+            core.setOutput('pr_number', pr.data.number);
+            core.setOutput('pr_url', pr.data.html_url);
+            
+            // Add a comment to the original issue
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: `🤖 **Copilot Auto-PR Created!**
+              
+              I've analyzed this issue and determined it has sufficient context for development work.
+              
+              📋 **Draft PR Created:** ${pr.data.html_url}
+              
+              The draft PR is ready for Copilot-assisted development. You can now:
+              1. Open the PR in GitHub Copilot Workspace
+              2. Use Copilot suggestions to implement the changes
+              3. Review and refine the implementation
+              4. Mark the PR as ready for review when complete`
+            });
+
+      - name: 💬 Comment if Not Ready
+        if: steps.fetch_issue.outputs.has_issue == 'true' && steps.analyze_context.outputs.response != 'READY'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = ${{ steps.fetch_issue.outputs.issue_number }};
+            const analysis_result = "${{ steps.analyze_context.outputs.response }}";
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: `🤖 **Copilot Context Check**
+              
+              I've analyzed this issue but found it doesn't yet have sufficient context for automated development work.
+              
+              **Analysis Result:** ${analysis_result}
+              
+              To enable Copilot auto-PR creation, please ensure the issue includes:
+              - Clear problem description or feature specification
+              - Technical details about expected behavior  
+              - Context about relevant code files or functions
+              - For bugs: reproduction steps, expected vs actual behavior
+              - For features: clear implementation requirements
+              
+              Once you've added more context, I'll automatically re-analyze the issue! 🚀`
+            });
+
+      - name: 📊 Summary
+        if: always()
+        run: |
+          echo "## Workflow Summary"
+          echo "- Issue: #${{ steps.fetch_issue.outputs.issue_number }}"
+          echo "- Analysis: ${{ steps.analyze_context.outputs.response }}"
+          echo "- Existing PR: ${{ steps.check_pr.outputs.has_existing_pr }}"
+          if [[ "${{ steps.create_pr.outputs.pr_number }}" != "" ]]; then
+            echo "- Created PR: #${{ steps.create_pr.outputs.pr_number }}"
+            echo "- PR URL: ${{ steps.create_pr.outputs.pr_url }}"
+          fi
